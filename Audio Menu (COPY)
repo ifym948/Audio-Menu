@@ -1,0 +1,344 @@
+// === LOUD AUDIO CRASHER - FIXED VERSION ===
+(function() {
+    // Remove existing controller if it exists
+    const existing = document.getElementById('audioCrasherController');
+    if (existing) existing.remove();
+
+    // Create controller using DOM methods instead of innerHTML
+    const controller = document.createElement('div');
+    controller.id = 'audioCrasherController';
+    controller.style.cssText = `
+        position: fixed;
+        top: 50px;
+        right: 10px;
+        width: 400px;
+        background: #000000;
+        border: 3px solid #ff0000;
+        border-radius: 10px;
+        padding: 15px;
+        z-index: 10000;
+        font-family: Arial, sans-serif;
+        color: #00ff00;
+        box-shadow: 0 0 30px rgba(255,0,0,0.8);
+        max-height: 85vh;
+        overflow-y: auto;
+    `;
+
+    // Create header
+    const header = document.createElement('div');
+    header.style.cssText = 'background: linear-gradient(45deg, #ff0000, #ff4444); padding: 12px; border-radius: 5px; margin-bottom: 15px; text-align: center; font-size: 16px; font-weight: bold;';
+    header.textContent = '🔊 EXTREME AUDIO CRASHER 🔊';
+    controller.appendChild(header);
+
+    // Create volume control container
+    const volumeContainer = document.createElement('div');
+    volumeContainer.style.cssText = 'margin-bottom: 15px; background: #111; padding: 10px; border-radius: 5px;';
+    
+    const volumeLabelContainer = document.createElement('div');
+    volumeLabelContainer.style.cssText = 'display: flex; justify-content: space-between; margin-bottom: 5px;';
+    
+    const volumeLabel = document.createElement('label');
+    volumeLabel.style.color = '#ff4444';
+    volumeLabel.textContent = 'MASTER VOLUME:';
+    
+    const volDisplay = document.createElement('span');
+    volDisplay.id = 'volDisplay';
+    volDisplay.style.color = '#00ff00';
+    volDisplay.textContent = '100%';
+    
+    volumeLabelContainer.appendChild(volumeLabel);
+    volumeLabelContainer.appendChild(volDisplay);
+    volumeContainer.appendChild(volumeLabelContainer);
+    
+    const masterSlider = document.createElement('input');
+    masterSlider.type = 'range';
+    masterSlider.id = 'masterVol';
+    masterSlider.min = '0';
+    masterSlider.max = '200';
+    masterSlider.value = '100';
+    masterSlider.style.cssText = 'width: 100%; height: 20px; background: #333;';
+    volumeContainer.appendChild(masterSlider);
+    
+    controller.appendChild(volumeContainer);
+
+    // Create checkboxes container
+    const checkboxesContainer = document.createElement('div');
+    checkboxesContainer.id = 'audioCheckboxes';
+    checkboxesContainer.style.cssText = 'margin-bottom: 15px; max-height: 400px; overflow-y: auto; background: #111; padding: 10px; border-radius: 5px;';
+    controller.appendChild(checkboxesContainer);
+
+    // Create buttons container
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;';
+    
+    // Play All button
+    const playAllBtn = document.createElement('button');
+    playAllBtn.textContent = 'PLAY ALL SELECTED';
+    playAllBtn.style.cssText = 'padding: 12px; background: linear-gradient(45deg, #007acc, #00aaff); color: white; border: none; border-radius: 5px; font-weight: bold;';
+    
+    // Stop All button
+    const stopAllBtn = document.createElement('button');
+    stopAllBtn.textContent = 'STOP ALL';
+    stopAllBtn.style.cssText = 'padding: 12px; background: linear-gradient(45deg, #666, #999); color: white; border: none; border-radius: 5px; font-weight: bold;';
+    
+    // Max Loudness button
+    const maxLoudBtn = document.createElement('button');
+    maxLoudBtn.textContent = 'MAXIMUM LOUDNESS';
+    maxLoudBtn.style.cssText = 'padding: 12px; background: linear-gradient(45deg, #ff0000, #ff4444); color: white; border: none; border-radius: 5px; font-weight: bold;';
+    
+    // Generate Tone button
+    const toneBtn = document.createElement('button');
+    toneBtn.textContent = 'GENERATE TONE';
+    toneBtn.style.cssText = 'padding: 12px; background: linear-gradient(45deg, #ff00ff, #cc00cc); color: white; border: none; border-radius: 5px; font-weight: bold;';
+    
+    buttonsContainer.appendChild(playAllBtn);
+    buttonsContainer.appendChild(stopAllBtn);
+    buttonsContainer.appendChild(maxLoudBtn);
+    buttonsContainer.appendChild(toneBtn);
+    controller.appendChild(buttonsContainer);
+
+    // Close button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'CLOSE CONTROLLER';
+    closeBtn.style.cssText = 'width: 100%; padding: 10px; background: #333; color: white; border: none; border-radius: 5px; margin-top: 5px;';
+    controller.appendChild(closeBtn);
+
+    // Add to page
+    document.body.appendChild(controller);
+
+    // Audio system
+    const audioContexts = [];
+    const oscillators = [];
+    const audioElements = [];
+    let masterVolume = 1.0;
+
+    // Audio sources
+    const audioSources = [
+        { name: "💥 BASS EXPLOSION", url: "https://assets.mixkit.co/sfx/preview/mixkit-bass-drop-2089.mp3" },
+        { name: "🔊 LASER BLAST", url: "https://assets.mixkit.co/sfx/preview/mixkit-laser-shot-2081.mp3" },
+        { name: "💣 MEGA EXPLOSION", url: "https://assets.mixkit.co/sfx/preview/mixkit-explosion-1698.mp3" },
+        { name: "🎸 SYNTH WAVE", url: "https://assets.mixkit.co/sfx/preview/mixkit-synth-not-158.mp3" },
+        { name: "🥁 DRUM CRASH", url: "https://assets.mixkit.co/sfx/preview/mixkit-drum-beat-1181.mp3" },
+        { name: "🚨 ALARM BEEP", url: "https://assets.mixkit.co/sfx/preview/mixkit-alarm-beep-165.mp3" },
+        { name: "⚡ POWER UP", url: "https://assets.mixkit.co/sfx/preview/mixkit-power-up-1701.mp3" },
+        { name: "📢 WARNING SIREN", url: "https://assets.mixkit.co/sfx/preview/mixkit-warning-alert-1669.mp3" },
+        { name: "🌊 DEEP IMPACT", url: "https://assets.mixkit.co/sfx/preview/mixkit-deep-impact-1702.mp3" },
+        { name: "🎮 GAME OVER", url: "https://assets.mixkit.co/sfx/preview/mixkit-game-over-1941.mp3" },
+        { name: "⚡ ELECTRIC ZAP", url: "https://assets.mixkit.co/sfx/preview/mixkit-electric-arc-1704.mp3" },
+        { name: "🚀 ROCKET LAUNCH", url: "https://assets.mixkit.co/sfx/preview/mixkit-rocket-whoosh-1710.mp3" },
+        { name: "🎵 BASS BOOST", url: "https://assets.mixkit.co/sfx/preview/mixkit-bass-drum-hit-2294.mp3" },
+        { name: "🔔 BELL RING", url: "https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3" },
+        { name: "📯 HORN BLAST", url: "https://assets.mixkit.co/sfx/preview/mixkit-car-horn-quick-blast-1200.mp3" }
+    ];
+
+    // Create checkboxes and audio elements
+    audioSources.forEach((audio, index) => {
+        const audioElementsForSound = [];
+        for (let i = 0; i < 3; i++) {
+            const audioElement = new Audio();
+            audioElement.src = audio.url;
+            audioElement.volume = masterVolume;
+            audioElement.preload = 'auto';
+            audioElement.loop = false;
+            audioElementsForSound.push(audioElement);
+        }
+        audioElements.push(audioElementsForSound);
+
+        // Create checkbox container
+        const checkboxContainer = document.createElement('div');
+        checkboxContainer.style.cssText = 'display: flex; align-items: center; margin: 8px 0; padding: 8px; background: #222; border-radius: 5px; border-left: 3px solid #ff4444;';
+        
+        // Create checkbox
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `crashCheck${index}`;
+        checkbox.checked = true;
+        checkbox.style.cssText = 'margin-right: 10px; transform: scale(1.3);';
+        
+        // Create label
+        const label = document.createElement('label');
+        label.htmlFor = `crashCheck${index}`;
+        label.style.cssText = 'flex: 1; color: #00ff00; font-weight: bold;';
+        label.textContent = audio.name;
+        
+        // Create volume slider
+        const volumeSlider = document.createElement('input');
+        volumeSlider.type = 'range';
+        volumeSlider.className = 'crashVol';
+        volumeSlider.setAttribute('data-index', index);
+        volumeSlider.min = '0';
+        volumeSlider.max = '200';
+        volumeSlider.value = '100';
+        volumeSlider.style.cssText = 'width: 100px; background: #333;';
+        
+        checkboxContainer.appendChild(checkbox);
+        checkboxContainer.appendChild(label);
+        checkboxContainer.appendChild(volumeSlider);
+        checkboxesContainer.appendChild(checkboxContainer);
+    });
+
+    // Setup volume controls
+    masterSlider.addEventListener('input', function() {
+        masterVolume = this.value / 100;
+        volDisplay.textContent = this.value + '%';
+        audioElements.forEach(soundGroup => {
+            soundGroup.forEach(audio => {
+                audio.volume = Math.min(1.0, masterVolume);
+            });
+        });
+    });
+
+    // Individual volume controls
+    document.querySelectorAll('.crashVol').forEach(slider => {
+        slider.addEventListener('input', function() {
+            const index = this.getAttribute('data-index');
+            const individualVol = this.value / 100;
+            audioElements[index].forEach(audio => {
+                audio.volume = Math.min(1.0, masterVolume * individualVol);
+            });
+        });
+    });
+
+    // Audio functions
+    function crashPlayAll() {
+        audioElements.forEach((soundGroup, index) => {
+            const checkbox = document.getElementById(`crashCheck${index}`);
+            if (checkbox.checked) {
+                soundGroup.forEach((audio, i) => {
+                    setTimeout(() => {
+                        audio.currentTime = 0;
+                        audio.volume = Math.min(1.0, masterVolume);
+                        audio.play().catch(e => {
+                            if (e.name === 'NotAllowedError') {
+                                generateEmergencyTone();
+                            }
+                        });
+                    }, i * 50);
+                });
+            }
+        });
+    }
+
+    function crashStopAll() {
+        audioElements.forEach(soundGroup => {
+            soundGroup.forEach(audio => {
+                audio.pause();
+                audio.currentTime = 0;
+            });
+        });
+        
+        oscillators.forEach(osc => {
+            try { osc.stop(); } catch(e) {}
+        });
+        oscillators.length = 0;
+        
+        audioContexts.forEach(ctx => {
+            try { ctx.close(); } catch(e) {}
+        });
+        audioContexts.length = 0;
+    }
+
+    function crashMaxLoud() {
+        if (!confirm('🚨 EXTREME VOLUME WARNING!\n\nThis will play at MAXIMUM volume and may be very loud!\n\nClick OK to continue at your own risk.')) {
+            return;
+        }
+        
+        masterVolume = 2.0;
+        masterSlider.value = 200;
+        volDisplay.textContent = '200%';
+        
+        audioElements.forEach((soundGroup, index) => {
+            const checkbox = document.getElementById(`crashCheck${index}`);
+            if (checkbox.checked) {
+                soundGroup.forEach((audio, i) => {
+                    setTimeout(() => {
+                        audio.volume = 1.0;
+                        audio.currentTime = 0;
+                        audio.play().catch(e => {
+                            generateEmergencyTone();
+                        });
+                    }, i * 30);
+                });
+            }
+        });
+        
+        generateBassTone();
+    }
+
+    function crashGenerateTone() {
+        generateEmergencyTone();
+    }
+
+    function generateBassTone() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            audioContexts.push(ctx);
+            
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(60, ctx.currentTime);
+            gainNode.gain.setValueAtTime(0.8, ctx.currentTime);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            
+            oscillator.start();
+            oscillators.push(oscillator);
+            
+            setTimeout(() => {
+                try {
+                    oscillator.stop();
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+                } catch(e) {}
+            }, 2000);
+        } catch(e) {
+            console.log('Web Audio API not supported');
+        }
+    }
+
+    function generateEmergencyTone() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            audioContexts.push(ctx);
+            
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+            gainNode.gain.setValueAtTime(0.5, ctx.currentTime);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            
+            oscillator.start();
+            oscillators.push(oscillator);
+            
+            setTimeout(() => {
+                try { oscillator.stop(); } catch(e) {}
+            }, 1000);
+        } catch(e) {
+            console.log('Web Audio API not supported');
+        }
+    }
+
+    // Assign functions to buttons and window
+    playAllBtn.onclick = crashPlayAll;
+    stopAllBtn.onclick = crashStopAll;
+    maxLoudBtn.onclick = crashMaxLoud;
+    toneBtn.onclick = crashGenerateTone;
+    closeBtn.onclick = function() {
+        controller.remove();
+        crashStopAll();
+    };
+
+    window.crashPlayAll = crashPlayAll;
+    window.crashStopAll = crashStopAll;
+    window.crashMaxLoud = crashMaxLoud;
+    window.crashGenerateTone = crashGenerateTone;
+
+    console.log('🔊 EXTREME AUDIO CRASHER LOADED!');
+    console.log('Commands: crashPlayAll(), crashStopAll(), crashMaxLoud(), crashGenerateTone()');
+})();
